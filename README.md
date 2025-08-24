@@ -1,9 +1,9 @@
 # ARBengine
 
-![CI](https://github.com/x1asdkl-hue/ARBEngine/actions/workflows/ci.yml/badge.svg) 
-![Version](https://img.shields.io/badge/version-0.1.0-orange) 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) 
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) 
+![CI](https://github.com/x1asdkl-hue/ARBEngine/actions/workflows/ci.yml/badge.svg?branch=main)
+![Version](https://img.shields.io/badge/version-0.1.0-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
 
 Autonomous arbitrage engine with:

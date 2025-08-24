@@ -1,3 +1,5 @@
+![CI](https://github.com/x1asdkl-hue/ARBEngine/actions/workflows/ci.yml/badge.svg)
+
 # ARBengine
 Autonomous arbitrage engine with:
 - Multi-DEX + OKX scanning

@@ -33,4 +33,5 @@ jobs:
 
     - name: Run tests
       run: |
-        echo 'No tests defined yet' 
+        pip install pytest
+        pytest tests

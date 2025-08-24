@@ -1,0 +1,21 @@
+{
+  "1": {
+    "uniswapv2": "0xUniswapV2Router",
+    "uniswapv3": "0xUniswapV3Router",
+    "sushiswap": "0xSushiRouter"
+  },
+  "137": {
+    "quickswap": "0xQuickRouter",
+    "sushiswap": "0xSushiRouterPolygon"
+  },
+  "56": {
+    "pancakeswap": "0xPancakeRouter"
+  },
+  "43114": {
+    "traderjoe": "0xTraderJoeRouter"
+  },
+  "250": {
+    "spookyswap": "0xSpookyRouter",
+    "equalizer": "0xEqualizerRouter"
+  }
+}

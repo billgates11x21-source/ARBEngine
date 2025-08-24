@@ -32,6 +32,8 @@ jobs:
         flake8 src || true   # allow style warnings, don’t fail
 
     - name: Run tests
+      env:
+        PYTEST_DISABLE_PLUGIN_AUTOLOAD: 1
       run: |
         pip install pytest
         pytest tests

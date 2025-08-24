@@ -35,7 +35,7 @@ jobs:
         pip install flake8
         flake8 src || true   # allow style warnings, don’t fail
 
-    - name: Run tests (disable plugin autoload completely)
+    - name: Run tests (disable plugins)
       run: |
         pip install pytest
         PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -p no:warnings tests

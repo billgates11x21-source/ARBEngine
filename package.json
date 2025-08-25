@@ -1,0 +1,11 @@
+{
+  "devDependencies": {
+    "hardhat": "^3.0.1"
+  },
+  "type": "module",
+  "dependencies": {
+    "@aave/core-v3": "^1.19.3",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0"
+  }
+}

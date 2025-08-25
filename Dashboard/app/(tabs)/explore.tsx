@@ -1,3 +1,4 @@
+import React from 'react';
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
 
@@ -9,6 +10,20 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function TabTwoScreen() {
+  const [balance, setBalance] = React.useState<any>(null);
+  const [lastTrade, setLastTrade] = React.useState<any>(null);
+  const [profit, setProfit] = React.useState<any>(null);
+  React.useEffect(() => {
+    fetch('http://127.0.0.1:8000/balance')
+      .then(res => res.json())
+      .then(data => setBalance(data.balances));
+    fetch('http://127.0.0.1:8000/last_trade')
+      .then(res => res.json())
+      .then(data => setLastTrade(data));
+    fetch('http://127.0.0.1:8000/profit')
+      .then(res => res.json())
+      .then(data => setProfit(data));
+  }, []);
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -19,11 +34,18 @@ export default function TabTwoScreen() {
           name="chevron.left.forwardslash.chevron.right"
           style={styles.headerImage}
         />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
+        <ThemedText type="title">Profit Monitor</ThemedText>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
+      <ThemedText>Live Balances:</ThemedText>
+      <ThemedText>{balance ? JSON.stringify(balance) : 'Loading...'}</ThemedText>
+      <ThemedText>Last Trade:</ThemedText>
+      <ThemedText>{lastTrade ? JSON.stringify(lastTrade) : 'Loading...'}</ThemedText>
+      <ThemedText>Profit Monitor:</ThemedText>
+      <ThemedText>{profit ? JSON.stringify(profit) : 'Loading...'}</ThemedText>
+      {/* Example collapsible sections below. You can further clean up or replace as needed. */}
       <Collapsible title="File-based routing">
         <ThemedText>
           This app has two screens:{' '}
@@ -47,50 +69,8 @@ export default function TabTwoScreen() {
       <Collapsible title="Images">
         <ThemedText>
           For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
+          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for different screen densities.
         </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
       </Collapsible>
     </ParallaxScrollView>
   );

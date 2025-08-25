@@ -22,8 +22,13 @@ ARBengine is a fully autonomous arbitrage engine combining:
 4. Run API server: `uvicorn src.api.server:app --port 8000`
 5. Start dashboard: `npm start` inside Dashboard/
 
+
+## Regulatory Compliance
+
+This project is intended for lawful use in accordance with Australian financial regulations. Users are responsible for their own compliance.
+
 ## Security
-- Never commit real API keys to GitHub
+- Never commit real API keys or secrets to GitHub
 - Always use .env for secrets
 
 

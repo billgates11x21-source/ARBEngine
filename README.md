@@ -20,3 +20,11 @@ Autonomous arbitrage engine with:
 pip install -r requirements.txt
 cp .env.example .env
 \`\`\`
+
+## Regulatory Compliance
+
+This project is intended for lawful use in accordance with Australian financial regulations. Users are responsible for their own compliance.
+
+## Security
+
+Never commit real API keys or secrets to GitHub. Always use `.env` for secrets. Example configuration is provided in `.env.example`.

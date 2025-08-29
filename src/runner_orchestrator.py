@@ -7,6 +7,7 @@ from src.strategies.breakout import BreakoutStrategy
 from src.strategies.crossagg import CrossExchangeAggregationStrategy
 from src.strategies.liquidity import LiquidityStrategy
 from src.strategies.scalper import ScalperStrategy
+from src.strategies.triangular_arb import TriangularArbStrategy
 from src.config import load_state, save_state
 
 class StrategyOrchestrator:
@@ -35,7 +36,8 @@ class StrategyOrchestrator:
             'breakout': BreakoutStrategy(),
             'crossagg': CrossExchangeAggregationStrategy(),
             'liquidity': LiquidityStrategy(),
-            'scalping': ScalperStrategy()
+            'scalping': ScalperStrategy(),
+            'triangular_arb': TriangularArbStrategy()  # Add the new triangular arbitrage strategy
         }
     
     def start_strategy(self, strategy_name: str) -> bool:
@@ -135,11 +137,12 @@ def start_strategies():
     """Start all strategies and monitoring"""
     orchestrator.start_monitoring()
     
-    # Start with just 2 strategies initially
+    # Start with just 3 strategies initially, including triangular arbitrage
     orchestrator.start_strategy('scalping')
     orchestrator.start_strategy('breakout')
+    orchestrator.start_strategy('triangular_arb')  # Add the new triangular arbitrage strategy
     
-    print("Started strategies: scalping, breakout")
+    print("Started strategies: scalping, breakout, triangular_arb")
     print("Monitoring active")
 
 if __name__ == "__main__":

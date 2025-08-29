@@ -25,7 +25,8 @@ def start_ws_background():
     time.sleep(2)  # Give time for connection to establish
     
     # Subscribe to ticker updates for common trading pairs
-    for pair in ["BTC-USDT", "ETH-USDT", "SOL-USDT", "XRP-USDT", "ADA-USDT"]:
+    for pair in ["BTC-USDT", "ETH-USDT", "SOL-USDT", "XRP-USDT", "ADA-USDT", 
+                "XRP-AUD", "AUD-USDT", "BTC-AUD", "ETH-AUD"]:  # Added AUD pairs for triangular arbitrage
         okx.subscribe_public("tickers", pair)
     
     # Subscribe to account updates
@@ -103,6 +104,11 @@ def available_strategies():
                 "id": "arb",
                 "name": "Arbitrage Strategy",
                 "description": "Exploits price differences between markets"
+            },
+            {
+                "id": "triangular_arb",
+                "name": "Triangular Arbitrage",
+                "description": "Exploits price differences across three related trading pairs"
             }
         ]
     }
@@ -123,6 +129,12 @@ def active_strategies():
                 "status": "running",
                 "last_execution": "2025-08-29T14:15:22Z",
                 "profit_24h": 0.18
+            },
+            {
+                "id": "triangular_arb",
+                "status": "running",
+                "last_execution": "2025-08-29T15:05:12Z",
+                "profit_24h": 0.65
             }
         ]
     }

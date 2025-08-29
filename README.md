@@ -17,6 +17,8 @@ ARBEngine is an automated trading system for OKX that implements 6 different spo
 - **Real-time Monitoring**: Track profits, balances, and trade history
 - **Mobile Optimized**: Fully responsive design for Android devices
 - **Secure API Integration**: Safely connected to your OKX account
+- **Automatic Error Handling**: Built-in error detection, recovery, and reporting
+- **Connection Monitoring**: Continuous monitoring of API connections with automatic reconnection
 
 ## Triangular Arbitrage
 
@@ -67,8 +69,11 @@ Use the start script to run both the backend API and the dashboard:
 ```
 
 This will:
-1. Start the OKX API server on port 8000
-2. Launch the dashboard in development mode
+1. Check for required dependencies
+2. Install any missing Python or Node.js packages
+3. Start the OKX API server on port 8000
+4. Launch the dashboard in development mode
+5. Set up automatic cleanup on exit
 
 ## Dashboard
 
@@ -76,6 +81,7 @@ The dashboard provides a user-friendly interface to monitor your trading activit
 
 - **Home**: System status and overview
 - **Explore**: Monitor account balance, active strategies, and trading performance
+- **System Status**: View connection status, error statistics, and system health
 
 ## API Endpoints
 
@@ -92,6 +98,17 @@ The backend API provides several endpoints:
 - `POST /strategies/{strategy_id}/toggle`: Toggle a strategy on/off
 - `GET /triangular/opportunities`: Get current triangular arbitrage opportunities
 - `GET /triangular/status`: Get status of triangular arbitrage strategy
+- `GET /system/status`: Get system status including API connections
+- `GET /system/errors`: Get system error information
+
+## Error Handling
+
+The system includes robust error handling:
+
+- **Automatic Recovery**: The system attempts to recover from common errors
+- **Error Logging**: All errors are logged for later analysis
+- **Connection Monitoring**: WebSocket and API connections are continuously monitored
+- **Automatic Reconnection**: The system automatically reconnects if connections are lost
 
 ## Security
 

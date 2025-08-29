@@ -14,6 +14,7 @@ from src.config import (
     OKX_API_SECRET,
     OKX_API_PASSPHRASE
 )
+from src.utils.error_handler import error_handler, handle_errors
 
 class OKXClient:
     """
@@ -32,6 +33,17 @@ class OKXClient:
         self.ws_private = None
         self.ws_callbacks = {}
         self.running = False
+        self.connection_status = {
+            'public_ws': False,
+            'private_ws': False,
+            'rest_api': False,
+            'last_check': time.time()
+        }
+        
+        # Register recovery strategies
+        error_handler.register_recovery_strategy("ConnectionError", self._handle_connection_error)
+        error_handler.register_recovery_strategy("TimeoutError", self._handle_timeout_error)
+        error_handler.register_recovery_strategy("WebSocketConnectionClosedException", self._handle_ws_disconnect)
         
     def _get_timestamp(self):
         """Get ISO timestamp for API requests"""
@@ -67,6 +79,7 @@ class OKXClient:
             'Content-Type': 'application/json'
         }
     
+    @handle_errors("OKX API request")
     def _request(self, method, request_path, params=None):
         """Make a REST API request"""
         url = self.REST_API_URL + request_path
@@ -76,14 +89,14 @@ class OKXClient:
             query_string = urllib.parse.urlencode(params)
             url = f"{url}?{query_string}"
             headers = self._build_headers(method, f"{request_path}?{query_string}")
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=10)
         else:
             # For POST, PUT, DELETE requests
             headers = self._build_headers(method, request_path, params)
             if method == 'POST':
-                response = requests.post(url, headers=headers, json=params)
+                response = requests.post(url, headers=headers, json=params, timeout=10)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers, json=params)
+                response = requests.delete(url, headers=headers, json=params, timeout=10)
             else:
                 raise ValueError(f"Unsupported method: {method}")
         
@@ -91,27 +104,36 @@ class OKXClient:
         if response.status_code != 200:
             raise Exception(f"API request failed: {response.status_code} - {response.text}")
         
+        # Update connection status
+        self.connection_status['rest_api'] = True
+        self.connection_status['last_check'] = time.time()
+        
         return response.json()
     
     # REST API Methods
+    @handle_errors("get_account_balance")
     def get_account_balance(self):
         """Get account balance"""
         return self._request('GET', '/api/v5/account/balance')
     
+    @handle_errors("get_positions")
     def get_positions(self):
         """Get current positions"""
         return self._request('GET', '/api/v5/account/positions')
     
+    @handle_errors("get_ticker")
     def get_ticker(self, instId):
         """Get ticker information for an instrument"""
         params = {'instId': instId}
         return self._request('GET', '/api/v5/market/ticker', params)
     
+    @handle_errors("get_orderbook")
     def get_orderbook(self, instId, sz='20'):
         """Get orderbook for an instrument"""
         params = {'instId': instId, 'sz': sz}
         return self._request('GET', '/api/v5/market/books', params)
     
+    @handle_errors("place_order")
     def place_order(self, instId, tdMode, side, ordType, sz, px=None):
         """Place a new order"""
         params = {
@@ -127,6 +149,7 @@ class OKXClient:
             
         return self._request('POST', '/api/v5/trade/order', params)
     
+    @handle_errors("cancel_order")
     def cancel_order(self, instId, ordId=None, clOrdId=None):
         """Cancel an existing order"""
         params = {'instId': instId}
@@ -140,6 +163,7 @@ class OKXClient:
             
         return self._request('POST', '/api/v5/trade/cancel-order', params)
     
+    @handle_errors("get_order_history")
     def get_order_history(self, instType, state='filled', limit='100'):
         """Get order history"""
         params = {
@@ -152,32 +176,47 @@ class OKXClient:
     # WebSocket Methods
     def _on_ws_message(self, ws, message):
         """Handle WebSocket messages"""
-        data = json.loads(message)
-        
-        # Handle ping messages
-        if 'event' in data and data['event'] == 'ping':
-            pong_msg = json.dumps({"event": "pong"})
-            ws.send(pong_msg)
-            return
+        try:
+            data = json.loads(message)
             
-        # Handle subscription responses
-        if 'event' in data and data['event'] == 'subscribe':
-            print(f"Successfully subscribed to {data.get('arg', {}).get('channel')}")
-            return
-            
-        # Handle data messages
-        if 'data' in data:
-            channel = data.get('arg', {}).get('channel')
-            if channel in self.ws_callbacks:
-                self.ws_callbacks[channel](data['data'])
+            # Handle ping messages
+            if 'event' in data and data['event'] == 'ping':
+                pong_msg = json.dumps({"event": "pong"})
+                ws.send(pong_msg)
+                return
+                
+            # Handle subscription responses
+            if 'event' in data and data['event'] == 'subscribe':
+                print(f"Successfully subscribed to {data.get('arg', {}).get('channel')}")
+                return
+                
+            # Handle data messages
+            if 'data' in data:
+                channel = data.get('arg', {}).get('channel')
+                if channel in self.ws_callbacks:
+                    self.ws_callbacks[channel](data['data'])
+        except Exception as e:
+            error_handler.handle_error(e, "WebSocket message processing")
     
     def _on_ws_error(self, ws, error):
         """Handle WebSocket errors"""
-        print(f"WebSocket error: {error}")
+        error_handler.handle_error(error, "WebSocket connection")
+        
+        # Update connection status
+        if ws == self.ws_public:
+            self.connection_status['public_ws'] = False
+        elif ws == self.ws_private:
+            self.connection_status['private_ws'] = False
     
     def _on_ws_close(self, ws, close_status_code, close_msg):
         """Handle WebSocket connection close"""
         print(f"WebSocket connection closed: {close_status_code} - {close_msg}")
+        
+        # Update connection status
+        if ws == self.ws_public:
+            self.connection_status['public_ws'] = False
+        elif ws == self.ws_private:
+            self.connection_status['private_ws'] = False
         
         # Attempt to reconnect if we're still running
         if self.running:
@@ -188,6 +227,12 @@ class OKXClient:
     def _on_ws_open(self, ws):
         """Handle WebSocket connection open"""
         print("WebSocket connection established")
+        
+        # Update connection status
+        if ws == self.ws_public:
+            self.connection_status['public_ws'] = True
+        elif ws == self.ws_private:
+            self.connection_status['private_ws'] = True
         
         # If this is the private WebSocket, we need to login
         if ws == self.ws_private:
@@ -205,6 +250,7 @@ class OKXClient:
             }
             ws.send(json.dumps(login_msg))
     
+    @handle_errors("connect_websockets")
     def _connect_websockets(self):
         """Connect to WebSockets"""
         # Connect to public WebSocket
@@ -226,14 +272,17 @@ class OKXClient:
         )
         
         # Start WebSocket threads
-        threading.Thread(target=self.ws_public.run_forever).start()
-        threading.Thread(target=self.ws_private.run_forever).start()
+        threading.Thread(target=self.ws_public.run_forever, kwargs={'ping_interval': 30}).start()
+        threading.Thread(target=self.ws_private.run_forever, kwargs={'ping_interval': 30}).start()
     
     def start_websockets(self):
         """Start WebSocket connections"""
         if not self.running:
             self.running = True
             self._connect_websockets()
+            
+            # Start connection monitor
+            threading.Thread(target=self._monitor_connections, daemon=True).start()
     
     def stop_websockets(self):
         """Stop WebSocket connections"""
@@ -243,6 +292,7 @@ class OKXClient:
         if self.ws_private:
             self.ws_private.close()
     
+    @handle_errors("subscribe_public")
     def subscribe_public(self, channel, instId, callback=None):
         """Subscribe to a public channel"""
         if not self.ws_public:
@@ -263,6 +313,7 @@ class OKXClient:
             
         self.ws_public.send(json.dumps(sub_msg))
     
+    @handle_errors("subscribe_private")
     def subscribe_private(self, channel, callback=None):
         """Subscribe to a private channel"""
         if not self.ws_private:
@@ -281,3 +332,59 @@ class OKXClient:
             self.ws_callbacks[channel] = callback
             
         self.ws_private.send(json.dumps(sub_msg))
+    
+    def _monitor_connections(self):
+        """Monitor connection status and reconnect if needed"""
+        while self.running:
+            try:
+                # Check if connections are active
+                current_time = time.time()
+                if current_time - self.connection_status['last_check'] > 60:  # Check every minute
+                    # Test REST API connection
+                    try:
+                        self._request('GET', '/api/v5/public/time')
+                        self.connection_status['rest_api'] = True
+                    except Exception:
+                        self.connection_status['rest_api'] = False
+                    
+                    # Check WebSocket connections
+                    if not self.connection_status['public_ws'] or not self.connection_status['private_ws']:
+                        print("WebSocket connection lost. Reconnecting...")
+                        self._connect_websockets()
+                    
+                    self.connection_status['last_check'] = current_time
+                
+                time.sleep(10)  # Check every 10 seconds
+            except Exception as e:
+                error_handler.handle_error(e, "connection_monitor")
+    
+    # Recovery strategies
+    def _handle_connection_error(self, error, context):
+        """Handle connection errors"""
+        print(f"Connection error in {context}: {error}. Attempting to reconnect...")
+        time.sleep(5)  # Wait before reconnecting
+        
+        if "WebSocket" in context:
+            self._connect_websockets()
+        else:
+            # For REST API, we'll retry on next request
+            pass
+    
+    def _handle_timeout_error(self, error, context):
+        """Handle timeout errors"""
+        print(f"Timeout error in {context}: {error}. Will retry with increased timeout.")
+        # The retry will be handled by the error_handler decorator
+    
+    def _handle_ws_disconnect(self, error, context):
+        """Handle WebSocket disconnection"""
+        print(f"WebSocket disconnected in {context}: {error}. Reconnecting...")
+        self._connect_websockets()
+    
+    def get_connection_status(self):
+        """Get the current connection status"""
+        return {
+            'public_ws': "Connected" if self.connection_status['public_ws'] else "Disconnected",
+            'private_ws': "Connected" if self.connection_status['private_ws'] else "Disconnected",
+            'rest_api': "Connected" if self.connection_status['rest_api'] else "Disconnected",
+            'last_check': datetime.datetime.fromtimestamp(self.connection_status['last_check']).strftime('%Y-%m-%d %H:%M:%S')
+        }

@@ -10,6 +10,7 @@ import { StrategyCard } from '@/components/ui/StrategyCard';
 import { BalanceCard } from '@/components/ui/BalanceCard';
 import { ProfitChart } from '@/components/ui/ProfitChart';
 import { TradeHistoryCard } from '@/components/ui/TradeHistoryCard';
+import { SystemStatusCard } from '@/components/ui/SystemStatusCard';
 
 // Get screen dimensions for responsive design
 const { width } = Dimensions.get('window');
@@ -21,6 +22,7 @@ export default function ExploreScreen() {
   const [profit, setProfit] = useState<any>(null);
   const [strategies, setStrategies] = useState<any[]>([]);
   const [activeStrategies, setActiveStrategies] = useState<any[]>([]);
+  const [systemStatus, setSystemStatus] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +58,11 @@ export default function ExploreScreen() {
       const activeStrategiesRes = await fetch(`${API_BASE_URL}/strategies/active`);
       const activeStrategiesData = await activeStrategiesRes.json();
       setActiveStrategies(activeStrategiesData.active_strategies || []);
+      
+      // Fetch system status
+      const systemStatusRes = await fetch(`${API_BASE_URL}/system/status`);
+      const systemStatusData = await systemStatusRes.json();
+      setSystemStatus(systemStatusData);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to fetch data. Please check your connection and try again.');
@@ -119,6 +126,15 @@ export default function ExploreScreen() {
             <ThemedText style={styles.errorText}>{error}</ThemedText>
           </ThemedView>
         )}
+        
+        {/* System Status */}
+        <ThemedView style={styles.section}>
+          <ThemedText type="subtitle">System Status</ThemedText>
+          <SystemStatusCard 
+            status={systemStatus}
+            colorScheme={colorScheme}
+          />
+        </ThemedView>
         
         {/* Profit Summary */}
         <ThemedView style={styles.section}>

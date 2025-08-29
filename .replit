@@ -1,0 +1,43 @@
+run = "bash start.sh"
+hidden = [".git", ".env.example", "__pycache__", "*.pyc", "node_modules"]
+language = "python"
+
+[nix]
+channel = "stable-22_11"
+
+[env]
+PYTHONPATH = "/home/runner/${REPL_SLUG}"
+PATH = "/home/runner/${REPL_SLUG}/node_modules/.bin:${PATH}"
+
+[packager]
+language = "python3"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
+
+[languages]
+
+[languages.python3]
+pattern = "**/*.py"
+syntax = "python"
+
+[languages.javascript]
+pattern = "**/*.js"
+syntax = "javascript"
+
+[languages.typescript]
+pattern = "**/*.ts,**/*.tsx"
+syntax = "typescript"
+
+[languages.jsx]
+pattern = "**/*.jsx"
+syntax = "jsx"
+
+[unitTest]
+language = "python3"
+
+[deployment]
+run = ["bash", "start.sh"]
+deploymentTarget = "cloudrun"

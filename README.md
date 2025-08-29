@@ -31,7 +31,9 @@ The triangular arbitrage strategy specifically focuses on AUD-based trading pair
 
 This strategy monitors price differences across these triangular paths and executes trades when profitable opportunities are detected.
 
-## Setup
+## Deployment Options
+
+### Option 1: Local Deployment
 
 1. Clone the repository:
 ```bash
@@ -60,20 +62,26 @@ cd Dashboard
 npm install
 ```
 
-## Running the System
-
-Use the start script to run both the backend API and the dashboard:
-
+5. Run the application:
 ```bash
 ./start.sh
 ```
 
-This will:
-1. Check for required dependencies
-2. Install any missing Python or Node.js packages
-3. Start the OKX API server on port 8000
-4. Launch the dashboard in development mode
-5. Set up automatic cleanup on exit
+### Option 2: Replit Deployment (Recommended)
+
+1. Go to [Replit](https://replit.com) and create an account if you don't have one.
+
+2. Click on "Create Repl" and select "Import from GitHub".
+
+3. Enter the repository URL: `https://github.com/billgates11x21-source/ARBEngine.git`
+
+4. Click "Import from GitHub" and wait for the repository to be imported.
+
+5. Once imported, Replit will automatically detect the project configuration.
+
+6. Click the "Run" button to start the application.
+
+7. The application will be available at the URL provided by Replit.
 
 ## Dashboard
 

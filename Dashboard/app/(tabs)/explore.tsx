@@ -26,8 +26,18 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // API base URL - change this to your actual API endpoint
-  const API_BASE_URL = 'http://localhost:8000';
+  // API base URL - dynamically determine based on environment
+  const getApiBaseUrl = () => {
+    // Check if we're running on Replit
+    if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('.repl.co')) {
+      // We're on Replit, use the same origin
+      return window.location.origin;
+    }
+    // Default for local development
+    return 'http://localhost:8000';
+  };
+
+  const API_BASE_URL = getApiBaseUrl();
 
   const fetchData = async () => {
     try {

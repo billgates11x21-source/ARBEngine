@@ -1,8 +1,38 @@
 {
+  "name": "arbengine",
+  "version": "1.0.0",
+  "description": "OKX Trading Dashboard with automated trading strategies",
+  "main": "start.sh",
+  "scripts": {
+    "start": "bash start.sh",
+    "build": "bash build.sh",
+    "install-deps": "pip install -r requirements.txt && cd Dashboard && npm install"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/billgates11x21-source/ARBEngine.git"
+  },
+  "keywords": [
+    "okx",
+    "trading",
+    "arbitrage",
+    "cryptocurrency",
+    "dashboard"
+  ],
+  "author": "NinjaTech AI",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/billgates11x21-source/ARBEngine/issues"
+  },
+  "homepage": "https://github.com/billgates11x21-source/ARBEngine#readme",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "devDependencies": {
     "hardhat": "^3.0.1"
   },
-  "type": "module",
   "dependencies": {
     "@aave/core-v3": "^1.19.3",
     "@openzeppelin/contracts": "^5.4.0",

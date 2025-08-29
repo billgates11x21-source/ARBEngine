@@ -1,31 +1,146 @@
 import time
+import threading
+import json
+from typing import Dict, List
 from src.strategies.arb_engine import ArbEngine
-from src.strategies.scalper import EMAScalper
-from src.strategies.breakout import VolBreakout
-from src.strategies.liquidity import LiquidityArb
-from src.strategies.crossagg import CrossAggArb
+from src.strategies.breakout import BreakoutStrategy
+from src.strategies.crossagg import CrossExchangeAggregationStrategy
+from src.strategies.liquidity import LiquidityStrategy
+from src.strategies.scalper import ScalperStrategy
+from src.config import load_state, save_state
 
-class Orchestrator:
+class StrategyOrchestrator:
+    """
+    Orchestrates and manages all trading strategies
+    """
     def __init__(self):
-        self.arb=ArbEngine()
-        self.scalper=EMAScalper()
-        self.breakout=VolBreakout()
-        self.liquidity=LiquidityArb()
-        self.crossagg=CrossAggArb()
+        self.strategies = {}
+        self.state = load_state()
+        self.running = False
+        self.stop_event = threading.Event()
+        
+        # Initialize strategies
+        self._init_strategies()
+        
+        # Load active strategies from state
+        if 'active_strategies' in self.state:
+            for strategy_name in self.state['active_strategies']:
+                if strategy_name in self.strategies:
+                    self.strategies[strategy_name].start()
+    
+    def _init_strategies(self):
+        """Initialize all strategies"""
+        self.strategies = {
+            'arb': ArbEngine(),
+            'breakout': BreakoutStrategy(),
+            'crossagg': CrossExchangeAggregationStrategy(),
+            'liquidity': LiquidityStrategy(),
+            'scalping': ScalperStrategy()
+        }
+    
+    def start_strategy(self, strategy_name: str) -> bool:
+        """Start a specific strategy"""
+        if strategy_name in self.strategies:
+            result = self.strategies[strategy_name].start()
+            if result:
+                # Update state
+                if 'active_strategies' not in self.state:
+                    self.state['active_strategies'] = []
+                if strategy_name not in self.state['active_strategies']:
+                    self.state['active_strategies'].append(strategy_name)
+                    save_state(self.state)
+            return result
+        return False
+    
+    def stop_strategy(self, strategy_name: str) -> bool:
+        """Stop a specific strategy"""
+        if strategy_name in self.strategies:
+            result = self.strategies[strategy_name].stop()
+            if result:
+                # Update state
+                if 'active_strategies' in self.state and strategy_name in self.state['active_strategies']:
+                    self.state['active_strategies'].remove(strategy_name)
+                    save_state(self.state)
+            return result
+        return False
+    
+    def get_strategy_status(self, strategy_name: str) -> Dict:
+        """Get status of a specific strategy"""
+        if strategy_name in self.strategies:
+            return self.strategies[strategy_name].get_status()
+        return {'error': 'Strategy not found'}
+    
+    def get_all_strategies_status(self) -> List[Dict]:
+        """Get status of all strategies"""
+        return [strategy.get_status() for strategy in self.strategies.values()]
+    
+    def start_all(self) -> bool:
+        """Start all strategies"""
+        success = True
+        for strategy_name in self.strategies:
+            if not self.start_strategy(strategy_name):
+                success = False
+        return success
+    
+    def stop_all(self) -> bool:
+        """Stop all strategies"""
+        success = True
+        for strategy_name in self.strategies:
+            if not self.stop_strategy(strategy_name):
+                success = False
+        return success
+    
+    def start_monitoring(self):
+        """Start monitoring thread"""
+        if not self.running:
+            self.running = True
+            self.stop_event.clear()
+            self.monitor_thread = threading.Thread(target=self._monitor_loop)
+            self.monitor_thread.daemon = True
+            self.monitor_thread.start()
+            return True
+        return False
+    
+    def stop_monitoring(self):
+        """Stop monitoring thread"""
+        if self.running:
+            self.running = False
+            self.stop_event.set()
+            if hasattr(self, 'monitor_thread') and self.monitor_thread.is_alive():
+                self.monitor_thread.join(timeout=5)
+            return True
+        return False
+    
+    def _monitor_loop(self):
+        """Monitor all strategies in a loop"""
+        while not self.stop_event.is_set():
+            try:
+                # Check each strategy's status
+                for strategy_name, strategy in self.strategies.items():
+                    if strategy.active:
+                        status = strategy.get_status()
+                        print(f"[MONITOR] {strategy_name}: active={status['active']}, "
+                              f"profit_24h={status['profit_24h']}, trades={status['trade_count']}")
+                
+                # Sleep for a while
+                time.sleep(60)  # Check every minute
+            except Exception as e:
+                print(f"Error in monitor loop: {e}")
+                time.sleep(60)  # Sleep on error
 
-    def run(self):
-        tick=0
-        while True:
-            tick+=1
-            print(f'--- cycle {tick} ---')
-            # always run Albatross
-            self.arb.step(token='ETH')
-            # rotate other strategies
-            if tick%2==0: self.scalper.step(price=1000+tick)
-            if tick%3==0: self.breakout.step(price=1000+tick)
-            if tick%4==0: self.liquidity.step()
-            if tick%5==0: self.crossagg.step()
-            time.sleep(1)
+# Create a global instance
+orchestrator = StrategyOrchestrator()
 
-if __name__=='__main__':
-    Orchestrator().run()
+def start_strategies():
+    """Start all strategies and monitoring"""
+    orchestrator.start_monitoring()
+    
+    # Start with just 2 strategies initially
+    orchestrator.start_strategy('scalping')
+    orchestrator.start_strategy('breakout')
+    
+    print("Started strategies: scalping, breakout")
+    print("Monitoring active")
+
+if __name__ == "__main__":
+    start_strategies()

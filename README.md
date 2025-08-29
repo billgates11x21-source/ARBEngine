@@ -2,20 +2,32 @@
 
 ## Overview
 
-ARBEngine is an automated trading system for OKX that implements 5 different spot wallet trading strategies. The system is designed to run autonomously, finding and executing profitable trading opportunities without user intervention.
+ARBEngine is an automated trading system for OKX that implements 6 different spot wallet trading strategies. The system is designed to run autonomously, finding and executing profitable trading opportunities without user intervention.
 
 ## Features
 
 - **Automated Trading**: All strategies run automatically without requiring user input
-- **Multiple Strategies**: 5 different spot trading strategies working simultaneously:
+- **Multiple Strategies**: 6 different spot trading strategies working simultaneously:
   - **Scalping Strategy**: Quick trades to profit from small price movements
   - **Breakout Strategy**: Capitalizes on price movements beyond support/resistance levels
   - **Liquidity Strategy**: Provides liquidity to earn fees in high-volume markets
   - **Cross-Exchange Aggregation**: Finds price differences across multiple exchanges
   - **Arbitrage Strategy**: Exploits price differences between markets
+  - **Triangular Arbitrage**: Exploits price differences across three related trading pairs (with AUD pairs)
 - **Real-time Monitoring**: Track profits, balances, and trade history
 - **Mobile Optimized**: Fully responsive design for Android devices
 - **Secure API Integration**: Safely connected to your OKX account
+
+## Triangular Arbitrage
+
+The triangular arbitrage strategy specifically focuses on AUD-based trading pairs:
+- XRP -> AUD -> USDT -> XRP
+- BTC -> AUD -> USDC -> BTC
+- SOL -> USDT -> AUD -> SOL
+- ETH -> AUD -> USDT -> ETH
+- LTC -> AUD -> USDT -> LTC
+
+This strategy monitors price differences across these triangular paths and executes trades when profitable opportunities are detected.
 
 ## Setup
 
@@ -78,6 +90,8 @@ The backend API provides several endpoints:
 - `GET /strategies/available`: List of available strategies
 - `GET /strategies/active`: List of active strategies
 - `POST /strategies/{strategy_id}/toggle`: Toggle a strategy on/off
+- `GET /triangular/opportunities`: Get current triangular arbitrage opportunities
+- `GET /triangular/status`: Get status of triangular arbitrage strategy
 
 ## Security
 

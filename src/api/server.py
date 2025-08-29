@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from src.strategies.arb_engine import ArbEngine
 from src.api.okx_client import OKXClient
+from src.runner_orchestrator import orchestrator
 import asyncio
 import threading
 import time
@@ -26,7 +27,7 @@ def start_ws_background():
     
     # Subscribe to ticker updates for common trading pairs
     for pair in ["BTC-USDT", "ETH-USDT", "SOL-USDT", "XRP-USDT", "ADA-USDT", 
-                "XRP-AUD", "AUD-USDT", "BTC-AUD", "ETH-AUD"]:  # Added AUD pairs for triangular arbitrage
+                "XRP-AUD", "AUD-USDT", "BTC-AUD", "AUD-USDC", "SOL-AUD"]:
         okx.subscribe_public("tickers", pair)
     
     # Subscribe to account updates
@@ -35,6 +36,9 @@ def start_ws_background():
 
 # Start WebSockets in background
 threading.Thread(target=start_ws_background).start()
+
+# Start the strategy orchestrator
+threading.Thread(target=orchestrator.start_monitoring).start()
 
 @app.get('/')
 def root():
@@ -115,31 +119,98 @@ def available_strategies():
 
 @app.get('/strategies/active')
 def active_strategies():
-    # This would normally come from a database or state management system
-    return {
-        "active_strategies": [
-            {
-                "id": "scalping",
+    # Get active strategies from the orchestrator
+    active_strategies = []
+    for strategy_name, strategy in orchestrator.strategies.items():
+        if strategy.active:
+            status = strategy.get_status()
+            active_strategies.append({
+                "id": strategy_name,
                 "status": "running",
-                "last_execution": "2025-08-29T12:30:45Z",
-                "profit_24h": 0.42
-            },
-            {
-                "id": "breakout",
-                "status": "running",
-                "last_execution": "2025-08-29T14:15:22Z",
-                "profit_24h": 0.18
-            },
-            {
-                "id": "triangular_arb",
-                "status": "running",
-                "last_execution": "2025-08-29T15:05:12Z",
-                "profit_24h": 0.65
-            }
-        ]
-    }
+                "last_execution": status.get('last_execution'),
+                "profit_24h": status.get('profit_24h', 0.0)
+            })
+    
+    return {"active_strategies": active_strategies}
 
 @app.post('/strategies/{strategy_id}/toggle')
 async def toggle_strategy(strategy_id: str):
-    # This would normally update a database or state management system
-    return {"status": "success", "strategy_id": strategy_id, "active": True}
+    # Check if strategy exists
+    if strategy_id not in orchestrator.strategies:
+        raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
+    
+    # Get current status
+    status = orchestrator.get_strategy_status(strategy_id)
+    
+    # Toggle strategy
+    if status.get('active', False):
+        # Stop strategy
+        result = orchestrator.stop_strategy(strategy_id)
+        new_status = "stopped"
+    else:
+        # Start strategy
+        result = orchestrator.start_strategy(strategy_id)
+        new_status = "running"
+    
+    if not result:
+        raise HTTPException(status_code=500, detail=f"Failed to toggle strategy {strategy_id}")
+    
+    return {"status": "success", "strategy_id": strategy_id, "active": new_status == "running"}
+
+@app.get('/triangular/opportunities')
+async def get_triangular_opportunities():
+    """Get current triangular arbitrage opportunities"""
+    try:
+        # Check if triangular_arb strategy is initialized
+        if 'triangular_arb' not in orchestrator.strategies:
+            raise HTTPException(status_code=404, detail="Triangular arbitrage strategy not found")
+        
+        # Get the strategy instance
+        strategy = orchestrator.strategies['triangular_arb']
+        
+        # Get opportunities
+        opportunities = []
+        for triangle in strategy.triangles:
+            # Skip if we don't have ticker data for all pairs in the triangle
+            if not all(pair in strategy.ticker_data for pair in triangle):
+                continue
+            
+            # Calculate potential profit
+            profit_pct, direction = strategy._calculate_triangle_profit(triangle)
+            
+            # Add to opportunities list if profit is positive
+            if profit_pct > 0:
+                opportunities.append({
+                    "triangle": triangle,
+                    "direction": direction,
+                    "profit_pct": profit_pct,
+                    "timestamp": time.time()
+                })
+        
+        # Sort by profit percentage (descending)
+        opportunities.sort(key=lambda x: x["profit_pct"], reverse=True)
+        
+        return {"opportunities": opportunities}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting triangular opportunities: {str(e)}")
+
+@app.get('/triangular/status')
+async def get_triangular_status():
+    """Get status of triangular arbitrage strategy"""
+    try:
+        # Check if triangular_arb strategy is initialized
+        if 'triangular_arb' not in orchestrator.strategies:
+            raise HTTPException(status_code=404, detail="Triangular arbitrage strategy not found")
+        
+        # Get the strategy instance
+        strategy = orchestrator.strategies['triangular_arb']
+        
+        # Get status
+        status = strategy.get_status()
+        
+        # Add open positions
+        status['open_positions'] = list(strategy.open_positions.values())
+        
+        return status
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting triangular status: {str(e)}")
